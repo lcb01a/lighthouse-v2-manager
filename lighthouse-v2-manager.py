@@ -12,6 +12,7 @@ __PWR_STANDBY        = bytearray([0x00])
 
 command = ""
 lh_macs = [] # hard code mac addresses here if you want, otherwise specify in command line
+tries = 5 # Amount of tries to send a command to a lighthouse
 
 print(" ")
 print("=== LightHouse V2 Manager ===")
@@ -140,18 +141,22 @@ async def run(loop, lh_macs):
 			print("   * "+mac)
 		print(" ")
 		for mac in lh_macs:
-			print(">> Trying to connect to BLE MAC '"+ mac +"'...")
-			try:
-				client = BleakClient(mac, loop=loop)
-				await client.connect()
-				print(">> '"+ mac +"' connected...")
-				await client.write_gatt_char(__PWR_CHARACTERISTIC, __PWR_ON if command=="on" else __PWR_STANDBY)
-				print(">> LH switched to '"+ command +"' successfully... ")
-				await client.disconnect()
-				print(">> disconnected. ")
-			except Exception as e:
-				print(">> ERROR: "+ str(e))
-			print(" ")
+			i = 0
+			while i < tries:
+				print(">> Trying to connect to BLE MAC '"+ mac +"'...")
+				try:
+					client = BleakClient(mac, loop=loop)
+					await client.connect()
+					print(">> '"+ mac +"' connected...")
+					await client.write_gatt_char(__PWR_CHARACTERISTIC, __PWR_ON if command=="on" else __PWR_STANDBY)
+					print(">> LH switched to '"+ command +"' successfully... ")
+					await client.disconnect()
+					print(">> disconnected. ")
+					break
+				except Exception as e:
+					print(">> ERROR: "+ str(e))
+					i += 1
+				print(" ")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(run(loop, lh_macs))
